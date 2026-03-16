@@ -1,24 +1,24 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import {
-    getFirestore,
-    collection,
-    query,
-    where,
-    onSnapshot,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    writeBatch,
-    doc,
-    serverTimestamp
-} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import { firebaseConfig } from "./config.js";
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+// import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+// import {
+//     getFirestore,
+//     collection,
+//     query,
+//     where,
+//     onSnapshot,
+//     addDoc,
+//     updateDoc,
+//     deleteDoc,
+//     writeBatch,
+//     doc,
+//     serverTimestamp
+// } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+// import { firebaseConfig } from "./config.js";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const COLLEGE_COLLECTION = "collegeAssignments";
+// const app = initializeApp(firebaseConfig);
+// const auth = getAuth(app);
+// const db = getFirestore(app);
+// const COLLEGE_COLLECTION = "collegeAssignments";
 
 let nav = 0; // Shared navigation offset
 let events = [];
@@ -27,51 +27,63 @@ const pendingList = document.getElementById('pendingAssignmentsList');
 const completedList = document.getElementById('completedAssignmentsList');
 const upcomingList = document.getElementById('upcomingAssignmentsList');
 
-let isUserLoggedIn = false;
-let currentUid = null;
-let collectionRef;
-let unsubscribe = null;
+// let isUserLoggedIn = false;
+// let currentUid = null;
+// let collectionRef;
+// let unsubscribe = null;
 
 async function addAssignmentFromInput() {
     const titleInput = document.getElementById('assignmentTitleInput');
     const dateInput = document.getElementById('assignmentDateInput');
+    const typeSelect = document.getElementById('eventTypeSelect');
 
     if (titleInput.value && dateInput.value) {
         const date = new Date(dateInput.value);
-        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate() + 1).padStart(2, '0')}`;
+        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const eventType = typeSelect.value;
+        let status;
+        if (eventType === 'assignment') {
+            status = 'pending';
+        } else if (eventType === 'exam') {
+            status = 'exam';
+        } else if (eventType === 'holiday') {
+            status = 'holiday';
+        }
         const newAssignmentData = {
             date: dateString,
             title: titleInput.value,
             description: '',
-            status: 'pending',
+            status: status,
             completed: false,
+            type: eventType
         };
 
-        if (isUserLoggedIn && currentUid) {
-            try {
-                await addDoc(collectionRef, { ...newAssignmentData, uid: currentUid, createdAt: serverTimestamp() });
-            } catch (error) {
-                console.error("Error adding assignment to Firestore:", error);
-                alert("Failed to save assignment online.");
-            }
-        } else {
+        // if (isUserLoggedIn && currentUid) {
+        //     try {
+        //         await addDoc(collectionRef, { ...newAssignmentData, uid: currentUid, createdAt: serverTimestamp() });
+        //     } catch (error) {
+        //         console.error("Error adding assignment to Firestore:", error);
+        //         alert("Failed to save assignment online.");
+        //     }
+        // } else {
             events.push({ id: `local-${Date.now()}`, ...newAssignmentData });
             saveAndRender();
-        }
+        // }
 
         titleInput.value = '';
         dateInput.value = '';
+        typeSelect.value = 'assignment';
     }
 }
 
 async function deleteEvent(eventId) {
     if (confirm('Are you sure you want to delete this assignment?')) {
-        if (isUserLoggedIn && !String(eventId).startsWith('local-')) {
-            await deleteDoc(doc(db, COLLEGE_COLLECTION, eventId));
-        } else {
+        // if (isUserLoggedIn && !String(eventId).startsWith('local-')) {
+        //     await deleteDoc(doc(db, COLLEGE_COLLECTION, eventId));
+        // } else {
             events = events.filter(e => e.id !== eventId);
             saveAndRender();
-        }
+        // }
     }
 }
 
@@ -79,22 +91,22 @@ async function toggleEvent(eventId) {
     const event = events.find(e => e.id === eventId);
     if (event) {
         const newCompletedStatus = !event.completed;
-        if (isUserLoggedIn && !String(eventId).startsWith('local-')) {
-            try {
-                const docRef = doc(db, COLLEGE_COLLECTION, eventId);
-                await updateDoc(docRef, { 
-                    completed: newCompletedStatus,
-                    status: newCompletedStatus ? 'completed' : 'pending'
-                });
-            } catch (error) {
-                console.error("Error updating assignment status in Firestore:", error);
-                alert("Failed to update assignment status online.");
-            }
-        } else {
+        // if (isUserLoggedIn && !String(eventId).startsWith('local-')) {
+        //     try {
+        //         const docRef = doc(db, COLLEGE_COLLECTION, eventId);
+        //         await updateDoc(docRef, { 
+        //             completed: newCompletedStatus,
+        //             status: newCompletedStatus ? 'completed' : 'pending'
+        //         });
+        //     } catch (error) {
+        //         console.error("Error updating assignment status in Firestore:", error);
+        //         alert("Failed to update assignment status online.");
+        //     }
+        // } else {
             event.completed = newCompletedStatus;
             event.status = newCompletedStatus ? 'completed' : 'pending';
             saveAndRender();
-        }
+        // }
     }
 }
 
@@ -206,21 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial render with loading state
     if(pendingList) pendingList.innerHTML = '<p>Loading assignments...</p>';
 
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            isUserLoggedIn = true;
-            currentUid = user.uid;
-            collectionRef = collection(db, COLLEGE_COLLECTION);
-            await syncLocalAssignmentsToFirestore(user.uid);
-            attachCollegeListener(user.uid);
-        } else {
-            isUserLoggedIn = false;
-            currentUid = null;
-            if (unsubscribe) unsubscribe();
-            events = localStorage.getItem('events') ? JSON.parse(localStorage.getItem('events')) : [];
-            loadAssignmentLists();
-        }
-    });
+    // Load from localStorage
+    events = localStorage.getItem('events') ? JSON.parse(localStorage.getItem('events')) : [];
+    loadAssignmentLists();
 
     document.querySelector('.subsection .add-btn').addEventListener('click', addAssignmentFromInput);
 

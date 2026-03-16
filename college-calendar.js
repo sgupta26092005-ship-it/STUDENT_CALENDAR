@@ -44,6 +44,9 @@ function load() {
     weekdays.forEach(day => {
         const daySquare = document.createElement('div');
         daySquare.classList.add('calendar-header');
+        if (day === 'Saturday' || day === 'Sunday') {
+            daySquare.classList.add('weekend-header');
+        }
         daySquare.innerText = day.substring(0, 3).toUpperCase();
         calendar.appendChild(daySquare);
     });
@@ -56,6 +59,13 @@ function load() {
 
         if (i > paddingDays) {
             daySquare.innerText = i - paddingDays;
+
+            // Calculate weekday: 0=Monday, 5=Saturday, 6=Sunday
+            const dayOfMonth = i - paddingDays;
+            const weekdayIndex = (paddingDays + dayOfMonth - 1) % 7;
+            if (weekdayIndex === 5 || weekdayIndex === 6) {
+                daySquare.classList.add('weekend');
+            }
 
             const eventsForDay = events.filter(e => e.date === dayString);
 
@@ -71,8 +81,7 @@ function load() {
                     eventDiv.classList.add('calendar-task');
                     eventDiv.classList.add(eventStatus);
                     eventDiv.innerText = event.title;
-                    // Apply color from CSS variable set in college.js
-                    if (eventStatus !== 'exam') eventDiv.style.backgroundColor = `var(--event-${eventStatus})`;
+                    // Color is applied via CSS class
                     daySquare.appendChild(eventDiv);
                 });
             }
