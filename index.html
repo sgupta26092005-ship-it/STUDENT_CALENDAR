@@ -715,23 +715,23 @@
 
             #newAssignmentModal {
                 width: 90%;
-                left: 5%;
-                top: 50px;
+                max-width: 350px;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
             }
 
             #currentMonth {
                 font-size: 1em;
                 text-align: center;
             }
-        }
+        
     </style>
 </head>
 <body>
     <!-- Owner Dashboard -->
     <div class="dashboard active" id="ownerDashboard">
         <div class="dashboard-content">
-            <!-- 4. College Section -->
-            <a href="index.html" class="back-link">← Back to Home</a>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 10px; border-radius: 8px;">
                 <button id="backButton" class="edit-btn">‹ Prev Month</button>
@@ -788,13 +788,14 @@
     </div>
 
     <div id="newAssignmentModal">
-        <h2>New Calendar Entry</h2>
+        <h2>Calendar Events</h2>
+        <div id="modalSelectedDate" style="margin-bottom: 8px; color: var(--text-secondary);"></div>
+        <div id="eventsForDay" style="margin-bottom: 15px; max-height: 150px; overflow-y: auto;"></div>
+        <h3 style="font-size: 1.1em; margin-bottom: 10px; color: var(--secondary-color);">Add New Entry</h3>
         <input id="eventTitleInput" placeholder="Title" />
         <textarea id="eventDescInput" placeholder="Description"></textarea>
-        <select id="eventStatusSelect">
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-            <option value="upcoming">Upcoming</option>
+        <select id="eventTypeSelectModal">
+            <option value="assignment">Assignment</option>
             <option value="exam">Exam</option>
             <option value="holiday">Holiday</option>
         </select>
@@ -804,7 +805,7 @@
 
     <div id="modalBackDrop"></div>
 
-    <script type="module" src="college.js"></script>
-    <script type="module" src="college-calendar.js"></script>
+    <script type="module" src="main.js"></script>
+    
 </body>
 </html>
