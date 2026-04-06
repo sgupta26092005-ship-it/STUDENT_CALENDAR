@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,20 +52,15 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .selection-screen {
             background: white;
             padding: 60px 40px;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             text-align: center;
             max-width: 600px;
             width: 100%;
@@ -115,7 +109,7 @@
 
         .role-btn:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .dashboard {
@@ -139,7 +133,7 @@
             border-radius: 15px;
             padding: 30px;
             margin-bottom: 30px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             border: 1px solid var(--border-color);
         }
 
@@ -163,9 +157,7 @@
             font-weight: 500;
         }
 
-        .task-input,
-        .client-input,
-        .teammate-input {
+        .task-input, .client-input, .teammate-input {
             display: flex;
             gap: 15px;
             margin-bottom: 20px;
@@ -173,12 +165,8 @@
             align-items: center;
         }
 
-        .task-input input,
-        .client-input input,
-        .teammate-input input,
-        .task-input select,
-        .client-input select,
-        .teammate-input select {
+        .task-input input, .client-input input, .teammate-input input,
+        .task-input select, .client-input select, .teammate-input select {
             flex: 1;
             min-width: 200px;
             padding: 12px 15px;
@@ -190,20 +178,14 @@
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .task-input input:focus,
-        .client-input input:focus,
-        .teammate-input input:focus,
-        .task-input select:focus,
-        .client-input select:focus,
-        .teammate-input select:focus {
+        .task-input input:focus, .client-input input:focus, .teammate-input input:focus,
+        .task-input select:focus, .client-input select:focus, .teammate-input select:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .add-btn,
-        .delete-btn,
-        .edit-btn {
+        .add-btn, .delete-btn, .edit-btn {
             padding: 12px 24px;
             border: none;
             border-radius: 8px;
@@ -249,17 +231,11 @@
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
-        .task-list,
-        .client-list,
-        .teammate-list,
-        .assignment-list {
+        .task-list, .client-list, .teammate-list, .assignment-list {
             list-style: none;
         }
 
-        .task-item,
-        .client-item,
-        .teammate-item,
-        .assignment-item {
+        .task-item, .client-item, .teammate-item, .assignment-item {
             background: var(--bg-tertiary);
             padding: 18px;
             margin-bottom: 12px;
@@ -272,14 +248,11 @@
             transition: all 0.3s ease;
         }
 
-        .task-item:hover,
-        .client-item:hover,
-        .teammate-item:hover,
-        .assignment-item:hover {
+        .task-item:hover, .client-item:hover, .teammate-item:hover, .assignment-item:hover {
             background: var(--bg-hover);
             border-color: var(--border-light);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .task-item input[type="checkbox"] {
@@ -316,7 +289,7 @@
             font-weight: 600;
             border-radius: 8px;
             font-size: 0.9em;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         .calendar-header.weekend-header {
@@ -340,7 +313,7 @@
             background: var(--bg-hover);
             border-color: var(--border-light);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .calendar-day.has-task {
@@ -426,7 +399,7 @@
             z-index: 20;
             padding: 30px;
             background-color: var(--bg-secondary);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             border-radius: 12px;
             width: 400px;
             top: 50%;
@@ -461,9 +434,7 @@
             box-shadow: 0 4px 12px rgba(255, 167, 38, 0.3);
         }
 
-        #newAssignmentModal input,
-        #newAssignmentModal textarea,
-        #newAssignmentModal select {
+        #newAssignmentModal input, #newAssignmentModal textarea, #newAssignmentModal select {
             width: 100%;
             padding: 12px 15px;
             margin-bottom: 15px;
@@ -475,9 +446,7 @@
             transition: border-color 0.3s ease;
         }
 
-        #newAssignmentModal input:focus,
-        #newAssignmentModal textarea:focus,
-        #newAssignmentModal select:focus {
+        #newAssignmentModal input:focus, #newAssignmentModal textarea:focus, #newAssignmentModal select:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -491,7 +460,7 @@
             width: 100vw;
             height: 100vh;
             position: fixed;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0,0,0,0.7);
             backdrop-filter: blur(2px);
         }
 
@@ -507,42 +476,27 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
             transition: all 0.3s ease;
         }
 
         .calendar-task:hover {
             transform: scale(1.05);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
 
-        .calendar-task.pending {
-            background-color: var(--event-pending);
-        }
-
-        .calendar-task.completed {
-            background-color: var(--event-completed);
-        }
-
-        .calendar-task.upcoming {
-            background-color: var(--event-upcoming);
-        }
-
-        .calendar-task.exam {
-            background-color: var(--event-exam);
-        }
-
-        .calendar-task.holiday {
-            background-color: var(--event-holiday);
-        }
+        .calendar-task.pending { background-color: var(--event-pending); }
+        .calendar-task.completed { background-color: var(--event-completed); }
+        .calendar-task.upcoming { background-color: var(--event-upcoming); }
+        .calendar-task.exam { background-color: var(--event-exam); }
+        .calendar-task.holiday { background-color: var(--event-holiday); }
 
         .calendar-day.padding {
             cursor: default !important;
             background-color: #1a1a1a !important;
             box-shadow: none !important;
         }
-
         .calendar-day:hover {
             background-color: #3a3a3a;
         }
@@ -591,8 +545,7 @@
             margin-top: 15px;
         }
 
-        table th,
-        table td {
+        table th, table td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
@@ -621,7 +574,7 @@
 
         .video-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             border-color: #667eea;
         }
 
@@ -632,7 +585,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.7);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -697,34 +650,23 @@
                 font-size: 1.1em;
             }
 
-            .task-input,
-            .client-input,
-            .teammate-input {
+            .task-input, .client-input, .teammate-input {
                 flex-direction: column;
                 gap: 10px;
             }
 
-            .task-input input,
-            .client-input input,
-            .teammate-input input,
-            .task-input select,
-            .client-input select,
-            .teammate-input select {
+            .task-input input, .client-input input, .teammate-input input,
+            .task-input select, .client-input select, .teammate-input select {
                 min-width: unset;
                 width: 100%;
             }
 
-            .add-btn,
-            .delete-btn,
-            .edit-btn {
+            .add-btn, .delete-btn, .edit-btn {
                 width: 100%;
                 margin: 5px 0;
             }
 
-            .task-item,
-            .client-item,
-            .teammate-item,
-            .assignment-item {
+            .task-item, .client-item, .teammate-item, .assignment-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
@@ -735,8 +677,7 @@
                 grid-template-columns: repeat(7, minmax(35px, 1fr));
             }
 
-            .calendar-header,
-            .calendar-day {
+            .calendar-header, .calendar-day {
                 padding: 8px 4px;
                 min-height: 60px;
                 font-size: 0.8em;
@@ -762,8 +703,7 @@
                 grid-template-columns: repeat(7, minmax(30px, 1fr));
             }
 
-            .calendar-header,
-            .calendar-day {
+            .calendar-header, .calendar-day {
                 padding: 6px 2px;
                 font-size: 0.7em;
             }
@@ -773,26 +713,27 @@
             }
         }
 
-        #newAssignmentModal {
-            width: 90%;
-            left: 5%;
-            top: 50px;
-        }
+            #newAssignmentModal {
+                width: 90%;
+                max-width: 350px;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+            }
 
-        #currentMonth {
-            font-size: 1em;
-            text-align: center;
-        }
+            #currentMonth {
+                font-size: 1em;
+                text-align: center;
+            }
+        
     </style>
 </head>
-
 <body>
     <!-- Owner Dashboard -->
     <div class="dashboard active" id="ownerDashboard">
         <div class="dashboard-content">
 
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 10px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 10px; border-radius: 8px;">
                 <button id="backButton" class="edit-btn">‹ Prev Month</button>
                 <h3 id="currentMonthDisplay" style="color: #e0e0e0;"></h3>
                 <button id="nextButton" class="edit-btn">Next Month ›</button>
@@ -800,10 +741,10 @@
 
             <div class="section">
                 <h2>🎓 College</h2>
-
+                
                 <div class="subsection">
                     <h3>Add New Event</h3>
-                    <div class="task-input">
+                     <div class="task-input">
                         <input type="text" id="assignmentTitleInput" placeholder="Event Title">
                         <select id="eventTypeSelect">
                             <option value="assignment">Assignment</option>
@@ -811,31 +752,25 @@
                             <option value="holiday">Holiday</option>
                         </select>
                         <input type="date" id="assignmentDateInput">
-                        <button class="add-btn">Add Event</button>
+                        <button id="assignmentAddButton" class="add-btn" type="button">Add Event</button>
                     </div>
                 </div>
 
                 <div class="subsection">
                     <div class="task-category">
-                        <div class="accordion-toggle active">
-                            <h3>Pending Events</h3><span class="arrow"></span>
-                        </div>
+                        <div class="accordion-toggle active"><h3>Pending Events</h3><span class="arrow"></span></div>
                         <ul class="assignment-list accordion-content active" id="pendingAssignmentsList">
                             <!-- Pending assignments will be populated here -->
                         </ul>
                     </div>
                     <div class="task-category">
-                        <div class="accordion-toggle">
-                            <h3>Completed Events</h3><span class="arrow"></span>
-                        </div>
+                        <div class="accordion-toggle"><h3>Completed Events</h3><span class="arrow"></span></div>
                         <ul class="assignment-list accordion-content" id="completedAssignmentsList">
-                            <!-- Completed assignments will be populated here -->
+                             <!-- Completed assignments will be populated here -->
                         </ul>
                     </div>
                     <div class="task-category">
-                        <div class="accordion-toggle">
-                            <h3>Upcoming Events</h3><span class="arrow"></span>
-                        </div>
+                        <div class="accordion-toggle"><h3>Upcoming Events</h3><span class="arrow"></span></div>
                         <ul class="assignment-list accordion-content" id="upcomingAssignmentsList">
                             <!-- Upcoming assignments will be populated here -->
                         </ul>
@@ -854,14 +789,13 @@
 
     <div id="newAssignmentModal">
         <h2>Calendar Events</h2>
+        <div id="modalSelectedDate" style="margin-bottom: 8px; color: var(--text-secondary);"></div>
         <div id="eventsForDay" style="margin-bottom: 15px; max-height: 150px; overflow-y: auto;"></div>
         <h3 style="font-size: 1.1em; margin-bottom: 10px; color: var(--secondary-color);">Add New Entry</h3>
         <input id="eventTitleInput" placeholder="Title" />
         <textarea id="eventDescInput" placeholder="Description"></textarea>
-        <select id="eventStatusSelect">
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-            <option value="upcoming">Upcoming</option>
+        <select id="eventTypeSelectModal">
+            <option value="assignment">Assignment</option>
             <option value="exam">Exam</option>
             <option value="holiday">Holiday</option>
         </select>
@@ -872,7 +806,6 @@
     <div id="modalBackDrop"></div>
 
     <script type="module" src="main.js"></script>
-
+    
 </body>
-
 </html>
