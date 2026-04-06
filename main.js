@@ -185,6 +185,8 @@ function formatDateToDDMMYYYY(dateString) {
             status = 'exam';
         } else if (eventType === 'holiday') {
             status = 'holiday';
+        } else if (eventType === 'events' || eventType === 'sports') {
+            status = 'events';
         }
 
         events.push({
@@ -277,6 +279,8 @@ async function addAssignmentFromInput(event) {
             status = 'exam';
         } else if (eventType === 'holiday') {
             status = 'holiday';
+        } else if (eventType === 'events' || eventType === 'sports') {
+            status = 'events';
         }
         const newAssignmentData = {
             date: dateString,
@@ -311,6 +315,54 @@ async function addAssignmentFromInput(event) {
             saveAndRender();
         }
     }
+
+    async function editEvent(eventId) {
+        const event = events.find(e => e.id === eventId);
+        if (!event) return;
+
+        const newTitle = prompt('Edit event title:', event.title);
+        if (newTitle === null) return;
+        const trimmedTitle = newTitle.trim();
+        if (!trimmedTitle) {
+            alert('Title cannot be empty.');
+            return;
+        }
+
+        const newDate = prompt('Edit event date (YYYY-MM-DD):', event.date || '');
+        if (newDate === null) return;
+        const normalizedDate = newDate.trim();
+        if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(normalizedDate) || isNaN(new Date(normalizedDate).getTime())) {
+            alert('Please enter a valid date in YYYY-MM-DD format.');
+            return;
+        }
+
+        const typeOptions = ['assignment', 'exam', 'holiday', 'events', 'sports'];
+        const newTypeInput = prompt(`Edit event type (${typeOptions.join(', ')}):`, event.type || 'assignment');
+        if (newTypeInput === null) return;
+        const newType = newTypeInput.trim().toLowerCase();
+        if (!typeOptions.includes(newType)) {
+            alert('Type must be one of: ' + typeOptions.join(', '));
+            return;
+        }
+
+        event.title = trimmedTitle;
+        event.date = normalizedDate;
+        event.type = newType;
+
+        if (event.completed) {
+            event.status = 'completed';
+        } else if (newType === 'assignment') {
+            event.status = 'pending';
+        } else if (newType === 'exam') {
+            event.status = 'exam';
+        } else if (newType === 'holiday') {
+            event.status = 'holiday';
+        } else {
+            event.status = 'events';
+        }
+
+        saveAndRender();
+    }
     
     function saveAndRender() {
         localStorage.setItem('events', JSON.stringify(events));
@@ -342,7 +394,7 @@ async function addAssignmentFromInput(event) {
     
         const assignments = events.filter(e => {
             const eventDate = new Date(e.date);
-            return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
+            return e.type === 'assignment' && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
         });
     
         assignments.forEach(a => {
@@ -361,8 +413,7 @@ async function addAssignmentFromInput(event) {
     
             assignmentItem.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleEvent(a.id));
             assignmentItem.querySelector('.delete-btn').addEventListener('click', () => deleteEvent(a.id));
-            // Placeholder for edit functionality
-            assignmentItem.querySelector('.edit-btn').addEventListener('click', () => alert('Edit functionality coming soon!'));
+            assignmentItem.querySelector('.edit-btn').addEventListener('click', () => editEvent(a.id));
     
             const eventDate = new Date(a.date);
     

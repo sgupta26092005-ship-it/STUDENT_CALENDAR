@@ -33,7 +33,8 @@
             --event-completed: var(--success-color);
             --event-upcoming: var(--info-color);
             --event-exam: var(--danger-color);
-            --event-holiday: var(--purple-color);
+            --event-holiday: var(--info-color);
+            --event-events: var(--info-color);
         }
 
         * {
@@ -491,6 +492,7 @@
         .calendar-task.upcoming { background-color: var(--event-upcoming); }
         .calendar-task.exam { background-color: var(--event-exam); }
         .calendar-task.holiday { background-color: var(--event-holiday); }
+        .calendar-task.events { background-color: var(--event-events); }
 
         .calendar-day.padding {
             cursor: default !important;
@@ -750,6 +752,9 @@
                             <option value="assignment">Assignment</option>
                             <option value="exam">Exam</option>
                             <option value="holiday">Holiday</option>
+                            <option value="events">Events</option>
+                            <option value="sports">Sports</option>
+
                         </select>
                         <input type="date" id="assignmentDateInput">
                         <button id="assignmentAddButton" class="add-btn" type="button">Add Event</button>
@@ -798,6 +803,9 @@
             <option value="assignment">Assignment</option>
             <option value="exam">Exam</option>
             <option value="holiday">Holiday</option>
+            <option value="events">Events</option>
+            <option value="sports">Sports</option>
+
         </select>
         <button id="saveButton">Save</button>
         <button id="cancelButton">Cancel</button>
