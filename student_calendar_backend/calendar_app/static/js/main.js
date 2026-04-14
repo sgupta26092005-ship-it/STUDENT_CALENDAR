@@ -1,0 +1,733 @@
+// Force light mode and disable all animations dynamically (Applied Globally)
+// ==========================
+// LOAD EVENTS FROM BACKEND
+// ==========================
+function loadEvents() {
+    fetch("/api/events/")
+        .then(response => response.json())
+        .then(data => {
+            console.log("Events:", data);
+
+            const list = document.getElementById("pendingAssignmentsList");
+            if (!list) return;
+
+            list.innerHTML = "";
+
+            data.forEach(event => {
+                const li = document.createElement("li");
+                li.innerText = event.title + " (" + event.date + ")";
+                list.appendChild(li);
+            });
+        });
+}
+
+
+
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        * {
+            animation: none !important;
+            transition: none !important;
+        }
+        :root {
+            color-scheme: light !important;
+        }
+    `;
+    document.head.appendChild(style);
+    document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.remove('dark', 'dark-mode', 'dark-theme');
+        document.documentElement.classList.remove('dark', 'dark-mode', 'dark-theme');
+    });
+})();
+
+// ============================================================================
+// UTILITY FUNCTION: Date Formatting (Available globally for all modules)
+// ============================================================================
+function formatDateToDDMMYYYY(dateString) {
+    if (!dateString) return '';
+    const parts = dateString.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[0]}`;
+    }
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+}
+
+// ============================================================================
+// MODULE: College Calendar (formerly college-calendar.js)
+// ============================================================================
+(function() {
+    let nav = 0; // This will be synced with college.js
+    let clicked = null;
+    let events = JSON.parse(localStorage.getItem('events') || '[]');
+    
+    const calendar = document.getElementById('assignmentCalendar');
+    const newAssignmentModal = document.getElementById('newAssignmentModal');
+    const backDrop = document.getElementById('modalBackDrop');
+    const eventTitleInput = document.getElementById('eventTitleInput');
+    const eventDescInput = document.getElementById('eventDescInput');
+    const eventTypeSelectModal = document.getElementById('eventTypeSelectModal');
+    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    function openModal(date) {
+        clicked = date;
+        const selectedDateLabel = document.getElementById('modalSelectedDate');
+        if (selectedDateLabel) {
+            selectedDateLabel.innerText = `Selected date: ${formatDateToDDMMYYYY(clicked)}`;
+        }
+        
+        // Display existing events for the clicked day
+        const eventsForDayDiv = document.getElementById('eventsForDay');
+        if (eventsForDayDiv) {
+            const eventsOnDay = events.filter(e => e.date === clicked);
+            if (eventsOnDay.length > 0) {
+                eventsForDayDiv.innerHTML = '';
+                eventsOnDay.forEach(e => {
+                    eventsForDayDiv.innerHTML += `<div style="padding: 8px; background: var(--bg-quaternary); margin-bottom: 8px; border-radius: 6px; border-left: 4px solid var(--primary-color); font-size: 0.9em;"><strong>${e.title}</strong> <span style="font-size: 0.85em; color: var(--text-muted); float: right; text-transform: capitalize;">${e.status}</span></div>`;
+                });
+            } else {
+                eventsForDayDiv.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 15px;">No events for this day. Add one below!</p>';
+            }
+        }
+
+        if (newAssignmentModal) newAssignmentModal.style.display = 'block';
+        if (backDrop) backDrop.style.display = 'block';
+    }
+    
+    function load() {
+        const dt = new Date();
+    
+        if (nav !== 0) {
+            dt.setMonth(new Date().getMonth() + nav);
+        }
+    
+        const day = dt.getDate();
+        const month = dt.getMonth();
+        const year = dt.getFullYear();
+    
+        const firstDayOfMonth = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+        const dateString = firstDayOfMonth.toLocaleDateString('en-us', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+        });
+        const paddingDays = weekdays.indexOf(dateString.split(', ')[0]);
+    
+        calendar.innerHTML = '';
+    
+        // Render calendar headers
+        weekdays.forEach(day => {
+            const daySquare = document.createElement('div');
+            daySquare.classList.add('calendar-header');
+            if (day === 'Saturday' || day === 'Sunday') {
+                daySquare.classList.add('weekend-header');
+            }
+            daySquare.innerText = day.substring(0, 3).toUpperCase();
+            calendar.appendChild(daySquare);
+        });
+    
+        for (let i = 1; i <= paddingDays + daysInMonth; i++) {
+            const daySquare = document.createElement('div');
+            daySquare.classList.add('calendar-day');
+    
+            const dayString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i - paddingDays).padStart(2, '0')}`;
+    
+            if (i > paddingDays) {
+                daySquare.innerText = i - paddingDays;
+    
+                // Calculate weekday: 0=Monday, 5=Saturday, 6=Sunday
+                const dayOfMonth = i - paddingDays;
+                const weekdayIndex = (paddingDays + dayOfMonth - 1) % 7;
+                if (weekdayIndex === 5 || weekdayIndex === 6) {
+                    daySquare.classList.add('weekend');
+                }
+    
+                const eventsForDay = events.filter(e => e.date === dayString);
+    
+                if (i - paddingDays === day && nav === 0) {
+                    daySquare.id = 'currentDay';
+                }
+    
+                if (eventsForDay.length > 0) {
+                    eventsForDay.forEach(event => {
+                        // Determine status for color-coding. If event.completed is true, status is 'completed'.
+                        const eventStatus = event.completed ? 'completed' : (event.status || 'pending');
+                        const eventDiv = document.createElement('div');
+                        eventDiv.classList.add('calendar-task');
+                        eventDiv.classList.add(eventStatus);
+                        eventDiv.innerText = event.title;
+                        // Color is applied via CSS class
+                        daySquare.appendChild(eventDiv);
+                    });
+                }
+    
+                daySquare.addEventListener('click', () => openModal(dayString));
+            } else {
+                daySquare.classList.add('padding');
+            }
+    
+            calendar.appendChild(daySquare);
+        }
+    }
+    
+    function closeModal() {
+        if (eventTitleInput) eventTitleInput.classList.remove('error');
+        if (newAssignmentModal) newAssignmentModal.style.display = 'none';
+        if (backDrop) backDrop.style.display = 'none';
+        if (eventTitleInput) eventTitleInput.value = '';
+        if (eventDescInput) eventDescInput.value = '';
+        if (eventTypeSelectModal) {
+            eventTypeSelectModal.value = 'assignment';
+        }
+        clicked = null;
+        load();
+    }
+    
+    function saveEvent(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        
+        if (!eventTitleInput) {
+            alert('Cannot save: title input field is missing.');
+            return;
+        }
+        
+        if (!eventTitleInput.value.trim()) {
+            eventTitleInput.classList.add('error');
+            alert('Please enter a title for the event.');
+            return;
+        }
+
+        eventTitleInput.classList.remove('error');
+        const eventType = eventTypeSelectModal ? eventTypeSelectModal.value : 'assignment';
+        let status = 'pending';
+        if (eventType === 'exam') {
+            status = 'exam';
+        } else if (eventType === 'holiday') {
+            status = 'holiday';
+        } else if (eventType === 'events' || eventType === 'sports') {
+            status = 'events';
+        }
+
+        events.push({
+            id: `local-${Date.now()}`,
+            date: clicked, // Stored in YYYY-MM-DD format
+            title: eventTitleInput.value,
+            description: eventDescInput ? eventDescInput.value : '',
+            status: status,
+            type: eventType,
+            completed: false,
+        });
+
+        localStorage.setItem('events', JSON.stringify(events));
+        closeModal();
+        window.dispatchEvent(new Event('events-updated')); // Notify college.js
+    }
+    
+    function initButtons() {
+        const saveBtn = document.getElementById('saveButton');
+        const cancelBtn = document.getElementById('cancelButton');
+        if (saveBtn) saveBtn.addEventListener('click', saveEvent);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('assignmentCalendar')) {
+            initButtons();
+            load();
+    
+            window.addEventListener('nav-change', (e) => {
+                nav = e.detail.nav;
+                load();
+            });
+    
+            window.addEventListener('events-updated', (e) => {
+                events = JSON.parse(localStorage.getItem('events') || '[]');
+                load();
+            });
+        }
+    });
+})();
+
+// ============================================================================
+// MODULE: College Logic (formerly college.js)
+// ============================================================================
+(function() {
+    let nav = 0; // Shared navigation offset
+    let events = [];
+    
+    const pendingList = document.getElementById('pendingAssignmentsList');
+    const completedList = document.getElementById('completedAssignmentsList');
+    const upcomingList = document.getElementById('upcomingAssignmentsList');
+    
+async function addAssignmentFromInput(event) {
+        if (event && event.preventDefault) {
+            event.preventDefault();
+        }
+
+        const titleInput = document.getElementById('assignmentTitleInput');
+        const dateInput = document.getElementById('assignmentDateInput');
+        const typeSelect = document.getElementById('eventTypeSelect');
+    
+        if (!titleInput || !dateInput) {
+            alert('Form inputs not found (expected IDs: assignmentTitleInput, assignmentDateInput).');
+            return;
+        }
+        
+        if (!titleInput.value.trim() || !dateInput.value.trim()) {
+            if (!titleInput.value.trim()) titleInput.classList.add('error');
+            if (!dateInput.value.trim()) dateInput.classList.add('error');
+            alert('Please provide both a title and a date.');
+            return;
+        }
+
+        titleInput.classList.remove('error');
+        dateInput.classList.remove('error');
+
+        let dateString = dateInput.value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const date = new Date(dateInput.value);
+            if (!isNaN(date.getTime())) {
+                dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            }
+        }
+        const eventType = typeSelect ? typeSelect.value : 'assignment';
+        let status;
+        if (eventType === 'assignment') {
+            status = 'pending';
+        } else if (eventType === 'exam') {
+            status = 'exam';
+        } else if (eventType === 'holiday') {
+            status = 'holiday';
+        } else if (eventType === 'events' || eventType === 'sports') {
+            status = 'events';
+        }
+        const newAssignmentData = {
+            date: dateString,
+            title: titleInput.value,
+            description: '',
+            status: status,
+            completed: false,
+            type: eventType
+        };
+
+        events.push({ id: `local-${Date.now()}`, ...newAssignmentData });
+        saveAndRender();
+
+        titleInput.value = '';
+        dateInput.value = '';
+        if (typeSelect) typeSelect.value = 'assignment';
+    }
+    
+    async function deleteEvent(eventId) {
+        if (confirm('Are you sure you want to delete this assignment?')) {
+            events = events.filter(e => e.id !== eventId);
+            saveAndRender();
+        }
+    }
+    
+    async function toggleEvent(eventId) {
+        const event = events.find(e => e.id === eventId);
+        if (event) {
+            const newCompletedStatus = !event.completed;
+            event.completed = newCompletedStatus;
+            event.status = newCompletedStatus ? 'completed' : 'pending';
+            saveAndRender();
+        }
+    }
+
+    async function editEvent(eventId) {
+        const event = events.find(e => e.id === eventId);
+        if (!event) return;
+
+        const newTitle = prompt('Edit event title:', event.title);
+        if (newTitle === null) return;
+        const trimmedTitle = newTitle.trim();
+        if (!trimmedTitle) {
+            alert('Title cannot be empty.');
+            return;
+        }
+
+        const newDate = prompt('Edit event date (YYYY-MM-DD):', event.date || '');
+        if (newDate === null) return;
+        const normalizedDate = newDate.trim();
+        if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(normalizedDate) || isNaN(new Date(normalizedDate).getTime())) {
+            alert('Please enter a valid date in YYYY-MM-DD format.');
+            return;
+        }
+
+        const typeOptions = ['assignment', 'exam', 'holiday', 'events', 'sports'];
+        const newTypeInput = prompt(`Edit event type (${typeOptions.join(', ')}):`, event.type || 'assignment');
+        if (newTypeInput === null) return;
+        const newType = newTypeInput.trim().toLowerCase();
+        if (!typeOptions.includes(newType)) {
+            alert('Type must be one of: ' + typeOptions.join(', '));
+            return;
+        }
+
+        event.title = trimmedTitle;
+        event.date = normalizedDate;
+        event.type = newType;
+
+        if (event.completed) {
+            event.status = 'completed';
+        } else if (newType === 'assignment') {
+            event.status = 'pending';
+        } else if (newType === 'exam') {
+            event.status = 'exam';
+        } else if (newType === 'holiday') {
+            event.status = 'holiday';
+        } else {
+            event.status = 'events';
+        }
+
+        saveAndRender();
+    }
+    
+    function saveAndRender() {
+        localStorage.setItem('events', JSON.stringify(events));
+        loadAssignmentLists();
+        // Also notify calendar to re-render
+        window.dispatchEvent(new Event('events-updated'));
+    }
+    
+    function loadAssignmentLists() {
+        if (pendingList) pendingList.innerHTML = '';
+        if (completedList) completedList.innerHTML = '';
+        if (upcomingList) upcomingList.innerHTML = '';
+    
+        const dt = new Date();
+        if (nav !== 0) {
+            dt.setMonth(new Date().getMonth() + nav);
+        }
+        const currentMonth = dt.getMonth();
+        const currentYear = dt.getFullYear();
+        const year = currentYear; // for the display string
+    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to the start of the day for accurate comparison
+    
+        const currentMonthDisplay = document.getElementById('currentMonthDisplay');
+        if (currentMonthDisplay) {
+            currentMonthDisplay.innerText = `${dt.toLocaleDateString('en-us', { month: 'long' })} ${year}`;
+        }
+    
+        const assignments = events.filter(e => {
+            const eventDate = new Date(e.date);
+            return e.type === 'assignment' && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
+        });
+    
+        assignments.forEach(a => {
+            const assignmentItem = document.createElement('li');
+            assignmentItem.className = 'assignment-item';
+            assignmentItem.innerHTML = `
+                <div>
+                    <input type="checkbox" ${a.completed ? 'checked' : ''}>
+                    <span class="task-text ${a.completed ? 'completed' : ''}">${a.title} ${a.date ? `(${formatDateToDDMMYYYY(a.date)})` : ''}</span>
+                </div>
+                <div>
+                    <button class="edit-btn">Edit</button>
+                    <button class="delete-btn">Delete</button>
+                </div>
+            `;
+    
+            assignmentItem.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleEvent(a.id));
+            assignmentItem.querySelector('.delete-btn').addEventListener('click', () => deleteEvent(a.id));
+            assignmentItem.querySelector('.edit-btn').addEventListener('click', () => editEvent(a.id));
+    
+            const eventDate = new Date(a.date);
+    
+            if (a.completed) {
+                if (completedList) completedList.appendChild(assignmentItem);
+            } else if (eventDate > today || a.status === 'upcoming') {
+                if (upcomingList) upcomingList.appendChild(assignmentItem);
+            } else if (a.status === 'pending') { // Only show 'pending' status here
+                if (pendingList) pendingList.appendChild(assignmentItem);
+            }
+        });
+    
+        // This ensures the accordion state is respected on re-render
+        document.querySelectorAll('.accordion-toggle').forEach(button => {
+            const content = button.nextElementSibling;
+            if (content && button.classList.contains('active')) {
+                content.classList.add('active');
+            }
+        });
+    }
+    
+    function initCollegeSection() {
+        // Load from localStorage first
+        events = localStorage.getItem('events') ? JSON.parse(localStorage.getItem('events')) : [];
+        
+        // Initialize button listeners first (before any early returns)
+        const addAssignmentButton = document.getElementById('assignmentAddButton');
+        if (addAssignmentButton) {
+            addAssignmentButton.addEventListener('click', addAssignmentFromInput);
+        } else {
+            const fallbackButtons = document.querySelectorAll('.add-btn');
+            fallbackButtons.forEach(btn => {
+                btn.addEventListener('click', addAssignmentFromInput);
+            });
+        }
+
+        const nextButton = document.getElementById('nextButton');
+        if (nextButton) {
+            nextButton.addEventListener('click', () => {
+                nav++;
+                loadAssignmentLists();
+                window.dispatchEvent(new CustomEvent('nav-change', { detail: { nav } }));
+            });
+        }
+
+        const backButton = document.getElementById('backButton');
+        if (backButton) {
+            backButton.addEventListener('click', () => {
+                nav--;
+                loadAssignmentLists();
+                window.dispatchEvent(new CustomEvent('nav-change', { detail: { nav } }));
+            });
+        }
+
+        document.querySelectorAll('.accordion-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const content = button.nextElementSibling;
+                button.classList.toggle('active');
+                content.classList.toggle('active');
+                if (button.classList.contains('active')) {
+                    content.classList.add('active');
+                }
+            });
+        });
+
+        if (!pendingList) return; // Added safety check so merged file doesn't throw errors on other pages
+
+        // Initial render with loading state
+        pendingList.innerHTML = '<p>Loading assignments...</p>';
+    
+        // Load from localStorage
+        events = localStorage.getItem('events') ? JSON.parse(localStorage.getItem('events')) : [];
+        loadAssignmentLists();
+    }
+
+    if (document.readyState !== 'loading') {
+        initCollegeSection();
+    } else {
+        document.addEventListener('DOMContentLoaded', initCollegeSection);
+    }
+
+    window.addEventListener('events-updated', (e) => {
+        events = JSON.parse(localStorage.getItem('events') || '[]');
+        if (pendingList || completedList || upcomingList) {
+            loadAssignmentLists();
+        }
+    });
+})();
+
+// ============================================================================
+// MODULE: Task Calendar (formerly calendar.js)
+// ============================================================================
+(function() {
+    let nav = 0; // This will be synced with upskill.js
+    let clicked = null;
+    let tasks = JSON.parse(localStorage.getItem('upskillTasks') || '[]');
+    
+    const calendar = document.getElementById('taskCalendar');
+    const newTaskModal = document.getElementById('newTaskModal');
+    const backDrop = document.getElementById('modalBackDrop');
+    const tasksForDayDiv = document.getElementById('tasksForDay');
+    const taskTitleInput = document.getElementById('taskTitleInput');
+    const taskDescInput = document.getElementById('taskDescInput'); // New description input
+    const taskStatusSelect = document.getElementById('taskStatusSelect'); // New status select
+    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    function openModal(date) {
+        clicked = date;
+        const tasksOnDay = tasks.filter(t => t.date.replace(/-/g, '/') === clicked.replace(/-/g, '/'));
+    
+        if (tasksOnDay.length > 0) {
+            if (tasksForDayDiv) tasksForDayDiv.innerHTML = '';
+            tasksOnDay.forEach(task => {
+                const taskEl = document.createElement('div');
+                taskEl.classList.add('task-item-modal');
+                taskEl.innerHTML = `
+                    <strong>${task.text}</strong>
+                    <p>${task.description || (task.date ? `Due: ${task.date}` : 'No description')}</p>
+                    <span class="status-badge ${task.status}">${task.status}</span>
+                `;
+                if (tasksForDayDiv) tasksForDayDiv.appendChild(taskEl);
+            });
+        } else {
+            if (tasksForDayDiv) tasksForDayDiv.innerHTML = '<p>No tasks for this day. Add one below!</p>';
+        }
+    
+        if (newTaskModal) newTaskModal.style.display = 'block';
+        if (backDrop) backDrop.style.display = 'block';
+    }
+    
+    function load() {
+        const dt = new Date();
+    
+        if (nav !== 0) {
+            dt.setMonth(new Date().getMonth() + nav);
+        }
+    
+        const day = dt.getDate();
+        const month = dt.getMonth();
+        const year = dt.getFullYear();
+    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to the start of today for accurate comparison
+    
+        const firstDayOfMonth = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+        const dateString = firstDayOfMonth.toLocaleDateString('en-us', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+        });
+        const paddingDays = weekdays.indexOf(dateString.split(', ')[0]);
+    
+        const currentMonthEl = document.getElementById('currentMonth');
+        if (currentMonthEl) {
+            currentMonthEl.innerText = `${dt.toLocaleDateString('en-us', { month: 'long' })} ${year}`;
+        }
+    
+        calendar.innerHTML = '';
+    
+        // Render calendar headers
+        weekdays.forEach(day => {
+            const daySquare = document.createElement('div');
+            daySquare.classList.add('calendar-header');
+            daySquare.innerText = day.substring(0, 3).toUpperCase();
+            calendar.appendChild(daySquare);
+        });
+    
+        for (let i = 1; i <= paddingDays + daysInMonth; i++) {
+            const daySquare = document.createElement('div');
+            daySquare.classList.add('calendar-day');
+    
+            const dayString = `${year}/${String(month + 1).padStart(2, '0')}/${String(i - paddingDays).padStart(2, '0')}`;
+    
+            if (i > paddingDays) {
+                daySquare.innerText = i - paddingDays;
+    
+                const tasksForDay = tasks.filter(t => t.date && t.date.replace(/-/g, '/') === dayString);
+    
+                if (i - paddingDays === day && nav === 0) {
+                    daySquare.id = 'currentDay';
+                }
+    
+                if (tasksForDay.length > 0) {
+                    const eventsContainer = document.createElement('div');
+                    eventsContainer.className = 'calendar-events';
+                    tasksForDay.forEach(task => {
+                        const eventIndicator = document.createElement('div');
+                        
+                        const taskDate = new Date(task.date);
+                        let taskStatus;
+                        if (task.completed) {
+                            taskStatus = 'completed';
+                        } else if (taskDate > today) {
+                            taskStatus = 'upcoming';
+                        } else {
+                            taskStatus = 'pending';
+                        }
+    
+                        eventIndicator.className = 'event-indicator';
+                        eventIndicator.setAttribute('data-status', taskStatus);
+                        eventIndicator.innerHTML = `
+                            <span class="event-title">${task.text}</span><div class="event-popup">
+                                <strong>${task.text}</strong>
+                                <p>${task.description || 'No description.'}</p>
+                            </div>
+                        `;
+                        // Add a click listener to the event indicator itself to open the edit modal
+                        eventIndicator.addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent the day's click event from firing
+                            if (window.openEditModal) window.openEditModal(task.id);
+                        });
+                        eventsContainer.appendChild(eventIndicator);
+                    });
+                    daySquare.appendChild(eventsContainer);
+                }
+    
+                daySquare.addEventListener('click', () => openModal(dayString));
+            } else {
+                daySquare.classList.add('padding');
+            }
+    
+            calendar.appendChild(daySquare);
+        }
+    }
+    
+    function closeModal() {
+        if (taskTitleInput) taskTitleInput.classList.remove('error');
+        if (newTaskModal) newTaskModal.style.display = 'none';
+        if (backDrop) backDrop.style.display = 'none';
+        if (taskTitleInput) taskTitleInput.value = '';
+        if (taskStatusSelect) taskStatusSelect.value = 'pending';
+        if (taskDescInput) taskDescInput.value = '';
+        clicked = null;
+        load();
+    }
+    
+    function saveTask(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        
+        if (!taskTitleInput) {
+            alert('Cannot save: task title input is missing.');
+            return;
+        }
+        
+        if (!taskTitleInput.value.trim()) {
+            taskTitleInput.classList.add('error');
+            alert('Please enter a title for the task.');
+            return;
+        }
+
+        taskTitleInput.classList.remove('error');
+        tasks.push({
+            id: Date.now(),
+            text: taskTitleInput.value,
+            date: clicked ? clicked.replace(/\//g, '-') : '', // Store in YYYY-MM-DD format
+            description: taskDescInput ? taskDescInput.value : '',
+            status: taskStatusSelect ? taskStatusSelect.value : 'pending',
+            completed: taskStatusSelect ? taskStatusSelect.value === 'completed' : false,
+        });
+
+        localStorage.setItem('upskillTasks', JSON.stringify(tasks));
+        closeModal();
+        window.dispatchEvent(new Event('tasks-updated')); // Notify upskill.js
+    }
+    
+    function initButtons() {
+        const saveBtn = document.getElementById('saveButton');
+        const cancelBtn = document.getElementById('cancelButton');
+        if (saveBtn) saveBtn.addEventListener('click', saveTask);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        // Ensure calendar-specific buttons are initialized only if they exist on the page
+        if (document.getElementById('taskCalendar')) {
+            initButtons();
+            load();
+    
+            window.addEventListener('nav-change', (e) => {
+                nav = e.detail.nav;
+                load();
+            });
+    
+            window.addEventListener('tasks-updated', (e) => {
+                tasks = JSON.parse(localStorage.getItem('upskillTasks') || '[]');
+                load();
+            });
+        }
+    });
+})();
+console.log("JS LOADED");
