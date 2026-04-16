@@ -1,6 +1,11 @@
+from django.contrib.auth.models import User
 from django.shortcuts import render
+from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import render
+from django.shortcuts import redirect
+from django.contrib import messages
 
-from django.shortcuts import render
+
 
 from django.http import JsonResponse
 from .models import Event
@@ -33,5 +38,54 @@ def add_event(request):
 
 def home(request):
     return render(request, 'index.html')
+
+
+
+def user_login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            messages.success(request, "Login Successful!") 
+            return redirect('dashboard')  # must exist
+
+        else:
+            messages.error(request, "Invalid credentials")
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
+
+    return render(request, 'login.html')
+
+
+def user_logout(request):
+    logout(request)
+    return redirect('login')
+
+
+def dashboard(request):
+    return render(request, 'index.html')
+
+
+
+def signup(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+
+        User.objects.create_user(username=username, password=password)
+        messages.success(request, "Signup Successful! Please log in.")
+
+        return redirect('login')
+
+    return render(request, 'signup.html')
+
+
+
+
+
+
 
 # Create your views here.
