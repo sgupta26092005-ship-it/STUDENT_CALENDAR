@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import render
 from django.shortcuts import redirect
 from django.contrib import messages
 
@@ -12,33 +11,48 @@ from .models import Event
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+
+@login_required
 def get_events(request):
-    events = Event.objects.all()
+    events = Event.objects.filter(
+        Q(is_global=True) | Q(users=request.user)
+    )
+
     data = list(events.values())
     return JsonResponse(data, safe=False)
 
 
-@csrf_exempt
+from django.contrib.auth.decorators import login_required
+
+@login_required   # 🔥 IMPORTANT
 def add_event(request):
     if request.method == "POST":
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
 
-        Event.objects.create(
-            title=data.get("title"),
-            date=data.get("date"),
-            event_type=data.get("event_type")
-        )
+            if not data.get("title") or not data.get("date"):
+                return JsonResponse({"error": "Missing title or date"}, status=400)
 
-        return JsonResponse({"message": "Event added"})
-    
-    return JsonResponse({"error": "Invalid request"})
+            event = Event.objects.create(
+                title=data.get("title"),
+                date=data.get("date"),
+                event_type=data.get("event_type", "Event"),
+                is_global=data.get("is_global", False)
+            )
 
+            # 🔥 ALWAYS attach logged-in user
+            event.users.add(request.user)
 
+            return JsonResponse({"message": "Event added"}, status=201)
 
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON payload"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
-def home(request):
-    return render(request, 'index.html')
-
+    return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
 def user_login(request):
@@ -65,8 +79,13 @@ def user_logout(request):
     return redirect('login')
 
 
+@login_required
 def dashboard(request):
-    return render(request, 'index.html')
+    events = Event.objects.filter(
+        Q(is_global=True) | Q(users=request.user)
+    ).order_by('date')
+
+    return render(request, 'index.html', {'events': events})
 
 
 

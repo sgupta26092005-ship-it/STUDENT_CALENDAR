@@ -1,40 +1,51 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
+
 
 class Event(models.Model):
-    event_typeS= [
+    EVENT_TYPES = [
         ('Exam', 'Exam'),
         ('Assignment', 'Assignment'),
-        ('Holiday', 'HOLIDAY'),
+        ('Holiday', 'Holiday'),
         ('Event', 'Event'),
-        ('Sports', 'SPORTS'),
+        ('Sports', 'Sports'),
     ]
-    user = models
+
+    users = models.ManyToManyField(User, blank=True)
+    is_global = models.BooleanField(default=False)
+
+    groups = models.ManyToManyField(Group, blank=True)
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     date = models.DateField()
-    event_type = models.CharField(max_length=50)
+
+    event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
 
 
-class Assignments(models.Model):
-    event_typeS= [
-        ('pending', 'pending'),
-        ('completed', 'completed'),
-        ('upcoming','upcoming')    ]
+class Assignment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('upcoming', 'Upcoming'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     date = models.DateField()
-    event_type = models.CharField(max_length=50)
+
+    groups = models.ManyToManyField(Group, blank=True)
+
+    event_type = models.CharField(max_length=50, choices=STATUS_CHOICES)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
-
-
-
-# Create your models here.

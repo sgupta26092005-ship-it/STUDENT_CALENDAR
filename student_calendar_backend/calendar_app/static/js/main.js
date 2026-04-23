@@ -1,27 +1,22 @@
 // Force light mode and disable all animations dynamically (Applied Globally)
 // ==========================
-// LOAD EVENTS FROM BACKEND
+// HELPER to get CSRF token for POST requests
 // ==========================
-function loadEvents() {
-    fetch("/api/events/")
-        .then(response => response.json())
-        .then(data => {
-            console.log("Events:", data);
-
-            const list = document.getElementById("pendingAssignmentsList");
-            if (!list) return;
-
-            list.innerHTML = "";
-
-            data.forEach(event => {
-                const li = document.createElement("li");
-                li.innerText = event.title + " (" + event.date + ")";
-                list.appendChild(li);
-            });
-        });
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
-
-
 
 (function() {
     const style = document.createElement('style');
@@ -61,7 +56,7 @@ function formatDateToDDMMYYYY(dateString) {
 (function() {
     let nav = 0; // This will be synced with college.js
     let clicked = null;
-    let events = JSON.parse(localStorage.getItem('events') || '[]');
+    let events = []; // Will be populated from the backend
     
     const calendar = document.getElementById('assignmentCalendar');
     const newAssignmentModal = document.getElementById('newAssignmentModal');
@@ -188,14 +183,14 @@ function formatDateToDDMMYYYY(dateString) {
         load();
     }
     
-    function saveEvent(e) {
+    async function saveEvent(e) {
         if (e && e.preventDefault) e.preventDefault();
-        
+
         if (!eventTitleInput) {
             alert('Cannot save: title input field is missing.');
             return;
         }
-        
+
         if (!eventTitleInput.value.trim()) {
             eventTitleInput.classList.add('error');
             alert('Please enter a title for the event.');
@@ -203,29 +198,34 @@ function formatDateToDDMMYYYY(dateString) {
         }
 
         eventTitleInput.classList.remove('error');
-        const eventType = eventTypeSelectModal ? eventTypeSelectModal.value : 'assignment';
-        let status = 'pending';
-        if (eventType === 'exam') {
-            status = 'exam';
-        } else if (eventType === 'holiday') {
-            status = 'holiday';
-        } else if (eventType === 'events' || eventType === 'sports') {
-            status = 'events';
-        }
+        const eventType = eventTypeSelectModal ? eventTypeSelectModal.value : 'Assignment';
+        // Capitalize first letter to match Django model choices
+        const formattedEventType = eventType.charAt(0).toUpperCase() + eventType.slice(1);
 
-        events.push({
-            id: `local-${Date.now()}`,
+        const eventData = {
             date: clicked, // Stored in YYYY-MM-DD format
             title: eventTitleInput.value,
             description: eventDescInput ? eventDescInput.value : '',
-            status: status,
-            type: eventType,
-            completed: false,
-        });
+            event_type: formattedEventType,
+        };
 
-        localStorage.setItem('events', JSON.stringify(events));
-        closeModal();
-        window.dispatchEvent(new Event('events-updated')); // Notify college.js
+        const csrftoken = getCookie('csrftoken');
+        try {
+            const response = await fetch('/api/add-event/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify(eventData),
+            });
+
+            if (response.ok) {
+                location.reload(); // Reload the page to show the new event from the server
+            } else {
+                alert('Failed to save event. Please try again.');
+            }
+        } catch (error) {
+            console.error("Error saving event:", error);
+            alert('An error occurred while saving the event.');
+        }
     }
     
     function initButtons() {
@@ -235,18 +235,18 @@ function formatDateToDDMMYYYY(dateString) {
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     }
     
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         if (document.getElementById('assignmentCalendar')) {
             initButtons();
-            load();
-    
+            try {
+                const response = await fetch('/api/events/');
+                events = await response.json();
+                load(); // Initial calendar render
+            } catch (error) {
+                console.error("Failed to load events for calendar:", error);
+            }
             window.addEventListener('nav-change', (e) => {
                 nav = e.detail.nav;
-                load();
-            });
-    
-            window.addEventListener('events-updated', (e) => {
-                events = JSON.parse(localStorage.getItem('events') || '[]');
                 load();
             });
         }
@@ -264,7 +264,7 @@ function formatDateToDDMMYYYY(dateString) {
     const completedList = document.getElementById('completedAssignmentsList');
     const upcomingList = document.getElementById('upcomingAssignmentsList');
     
-async function addAssignmentFromInput(event) {
+    async function addAssignmentFromInput(event) {
         if (event && event.preventDefault) {
             event.preventDefault();
         }
@@ -295,104 +295,57 @@ async function addAssignmentFromInput(event) {
                 dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             }
         }
-        const eventType = typeSelect ? typeSelect.value : 'assignment';
-        let status;
-        if (eventType === 'assignment') {
-            status = 'pending';
-        } else if (eventType === 'exam') {
-            status = 'exam';
-        } else if (eventType === 'holiday') {
-            status = 'holiday';
-        } else if (eventType === 'events' || eventType === 'sports') {
-            status = 'events';
-        }
+        const eventType = typeSelect ? typeSelect.value : 'Assignment';
+        const formattedEventType = eventType.charAt(0).toUpperCase() + eventType.slice(1);
+
         const newAssignmentData = {
             date: dateString,
             title: titleInput.value,
             description: '',
-            status: status,
-            completed: false,
-            type: eventType
+            event_type: formattedEventType,
         };
 
-        events.push({ id: `local-${Date.now()}`, ...newAssignmentData });
-        saveAndRender();
+        const csrftoken = getCookie('csrftoken');
+        try {
+            const response = await fetch('/api/add-event/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify(newAssignmentData),
+            });
 
-        titleInput.value = '';
-        dateInput.value = '';
-        if (typeSelect) typeSelect.value = 'assignment';
+            if (response.ok) {
+                location.reload(); // Reload page to show new event
+            } else {
+                alert('Failed to add assignment.');
+            }
+        } catch (error) {
+            console.error("Error adding assignment:", error);
+            alert('An error occurred while adding the assignment.');
+        }
     }
     
     async function deleteEvent(eventId) {
-        if (confirm('Are you sure you want to delete this assignment?')) {
-            events = events.filter(e => e.id !== eventId);
-            saveAndRender();
-        }
+        // This requires a backend endpoint. For now, this functionality is disabled.
+        alert('Deleting events is not yet supported.');
     }
     
     async function toggleEvent(eventId) {
-        const event = events.find(e => e.id === eventId);
-        if (event) {
-            const newCompletedStatus = !event.completed;
-            event.completed = newCompletedStatus;
-            event.status = newCompletedStatus ? 'completed' : 'pending';
-            saveAndRender();
-        }
+        // This requires a backend endpoint. For now, this functionality is disabled.
+        alert('Updating event status is not yet supported.');
+        // Re-enable checkbox if you implement this
+        const checkbox = document.querySelector(`input[data-event-id='${eventId}']`);
+        if (checkbox) checkbox.checked = !checkbox.checked; // Revert UI change
     }
 
     async function editEvent(eventId) {
-        const event = events.find(e => e.id === eventId);
-        if (!event) return;
-
-        const newTitle = prompt('Edit event title:', event.title);
-        if (newTitle === null) return;
-        const trimmedTitle = newTitle.trim();
-        if (!trimmedTitle) {
-            alert('Title cannot be empty.');
-            return;
-        }
-
-        const newDate = prompt('Edit event date (YYYY-MM-DD):', event.date || '');
-        if (newDate === null) return;
-        const normalizedDate = newDate.trim();
-        if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(normalizedDate) || isNaN(new Date(normalizedDate).getTime())) {
-            alert('Please enter a valid date in YYYY-MM-DD format.');
-            return;
-        }
-
-        const typeOptions = ['assignment', 'exam', 'holiday', 'events', 'sports'];
-        const newTypeInput = prompt(`Edit event type (${typeOptions.join(', ')}):`, event.type || 'assignment');
-        if (newTypeInput === null) return;
-        const newType = newTypeInput.trim().toLowerCase();
-        if (!typeOptions.includes(newType)) {
-            alert('Type must be one of: ' + typeOptions.join(', '));
-            return;
-        }
-
-        event.title = trimmedTitle;
-        event.date = normalizedDate;
-        event.type = newType;
-
-        if (event.completed) {
-            event.status = 'completed';
-        } else if (newType === 'assignment') {
-            event.status = 'pending';
-        } else if (newType === 'exam') {
-            event.status = 'exam';
-        } else if (newType === 'holiday') {
-            event.status = 'holiday';
-        } else {
-            event.status = 'events';
-        }
-
-        saveAndRender();
+        // This requires a backend endpoint. For now, this functionality is disabled.
+        alert('Editing events is not yet supported.');
     }
     
     function saveAndRender() {
-        localStorage.setItem('events', JSON.stringify(events));
+        // This function previously saved to localStorage.
+        // Now it just re-renders the lists from the in-memory 'events' array.
         loadAssignmentLists();
-        // Also notify calendar to re-render
-        window.dispatchEvent(new Event('events-updated'));
     }
     
     function loadAssignmentLists() {
@@ -417,8 +370,8 @@ async function addAssignmentFromInput(event) {
         }
     
         const assignments = events.filter(e => {
-            const eventDate = new Date(e.date);
-            return e.type === 'assignment' && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
+            const eventDate = new Date(e.date + 'T00:00:00'); // Avoid timezone issues
+            return e.event_type === 'Assignment' && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
         });
     
         assignments.forEach(a => {
@@ -426,7 +379,7 @@ async function addAssignmentFromInput(event) {
             assignmentItem.className = 'assignment-item';
             assignmentItem.innerHTML = `
                 <div>
-                    <input type="checkbox" ${a.completed ? 'checked' : ''}>
+                    <input type="checkbox" data-event-id="${a.id}" ${a.completed ? 'checked' : ''} disabled>
                     <span class="task-text ${a.completed ? 'completed' : ''}">${a.title} ${a.date ? `(${formatDateToDDMMYYYY(a.date)})` : ''}</span>
                 </div>
                 <div>
@@ -435,11 +388,13 @@ async function addAssignmentFromInput(event) {
                 </div>
             `;
     
-            assignmentItem.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleEvent(a.id));
-            assignmentItem.querySelector('.delete-btn').addEventListener('click', () => deleteEvent(a.id));
-            assignmentItem.querySelector('.edit-btn').addEventListener('click', () => editEvent(a.id));
+            // NOTE: Event listeners for toggle, delete, and edit are disabled
+            // because they require backend implementation.
+            // assignmentItem.querySelector('input[type="checkbox"]').addEventListener('change', () => toggleEvent(a.id));
+            // assignmentItem.querySelector('.delete-btn').addEventListener('click', () => deleteEvent(a.id));
+            // assignmentItem.querySelector('.edit-btn').addEventListener('click', () => editEvent(a.id));
     
-            const eventDate = new Date(a.date);
+            const eventDate = new Date(a.date + 'T00:00:00');
     
             if (a.completed) {
                 if (completedList) completedList.appendChild(assignmentItem);
@@ -460,9 +415,6 @@ async function addAssignmentFromInput(event) {
     }
     
     function initCollegeSection() {
-        // Load from localStorage first
-        events = localStorage.getItem('events') ? JSON.parse(localStorage.getItem('events')) : [];
-        
         // Initialize button listeners first (before any early returns)
         const addAssignmentButton = document.getElementById('assignmentAddButton');
         if (addAssignmentButton) {
@@ -507,22 +459,17 @@ async function addAssignmentFromInput(event) {
 
         // Initial render with loading state
         pendingList.innerHTML = '<p>Loading assignments...</p>';
-    
-        // Load from localStorage
-        events = localStorage.getItem('events') ? JSON.parse(localStorage.getItem('events')) : [];
-        loadAssignmentLists();
     }
 
-    if (document.readyState !== 'loading') {
+    document.addEventListener('DOMContentLoaded', async () => {
         initCollegeSection();
-    } else {
-        document.addEventListener('DOMContentLoaded', initCollegeSection);
-    }
-
-    window.addEventListener('events-updated', (e) => {
-        events = JSON.parse(localStorage.getItem('events') || '[]');
-        if (pendingList || completedList || upcomingList) {
+        try {
+            const response = await fetch('/api/events/');
+            events = await response.json();
             loadAssignmentLists();
+        } catch (error) {
+            console.error("Failed to load events for lists:", error);
+            if (pendingList) pendingList.innerHTML = '<p>Error loading assignments.</p>';
         }
     });
 })();
@@ -533,7 +480,14 @@ async function addAssignmentFromInput(event) {
 (function() {
     let nav = 0; // This will be synced with upskill.js
     let clicked = null;
-    let tasks = JSON.parse(localStorage.getItem('upskillTasks') || '[]');
+   let tasks = [];
+
+fetch('/api/events/')
+    .then(res => res.json())
+    .then(data => {
+        tasks = data;
+        load();
+    });
     
     const calendar = document.getElementById('taskCalendar');
     const newTaskModal = document.getElementById('newTaskModal');
@@ -677,34 +631,38 @@ async function addAssignmentFromInput(event) {
         load();
     }
     
-    function saveTask(e) {
-        if (e && e.preventDefault) e.preventDefault();
-        
-        if (!taskTitleInput) {
-            alert('Cannot save: task title input is missing.');
-            return;
-        }
-        
-        if (!taskTitleInput.value.trim()) {
-            taskTitleInput.classList.add('error');
-            alert('Please enter a title for the task.');
-            return;
-        }
+ async function saveTask(e) {
+    if (e && e.preventDefault) e.preventDefault();
 
-        taskTitleInput.classList.remove('error');
-        tasks.push({
-            id: Date.now(),
-            text: taskTitleInput.value,
-            date: clicked ? clicked.replace(/\//g, '-') : '', // Store in YYYY-MM-DD format
-            description: taskDescInput ? taskDescInput.value : '',
-            status: taskStatusSelect ? taskStatusSelect.value : 'pending',
-            completed: taskStatusSelect ? taskStatusSelect.value === 'completed' : false,
-        });
-
-        localStorage.setItem('upskillTasks', JSON.stringify(tasks));
-        closeModal();
-        window.dispatchEvent(new Event('tasks-updated')); // Notify upskill.js
+    if (!taskTitleInput.value.trim()) {
+        alert('Enter title');
+        return;
     }
+
+    const csrftoken = getCookie('csrftoken');
+
+    const taskData = {
+        title: taskTitleInput.value,
+        date: clicked ? clicked.replace(/\//g, '-') : '',
+        description: taskDescInput ? taskDescInput.value : '',
+        event_type: "Task"
+    };
+
+    const response = await fetch('/api/add-event/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(taskData)
+    });
+
+    if (response.ok) {
+        location.reload();
+    } else {
+        alert("Failed to save task");
+    }
+}
     
     function initButtons() {
         const saveBtn = document.getElementById('saveButton');
