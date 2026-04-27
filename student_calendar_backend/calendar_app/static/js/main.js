@@ -51,6 +51,22 @@ function formatDateToDDMMYYYY(dateString) {
 }
 
 // ============================================================================
+// UTILITY FUNCTION: Event Colors based on Event Type
+// ============================================================================
+function getEventTypeColor(eventType) {
+    if (!eventType) return null;
+    switch (eventType.toLowerCase()) {
+        case 'exam': return '#ff4d4d'; // Red
+        case 'assignment': return '#4da6ff'; // Blue
+        case 'holiday': return '#33cc33'; // Green
+        case 'event': return '#b366ff'; // Purple
+        case 'sports': return '#ffa64d'; // Orange
+        case 'task': return '#00cccc'; // Teal
+        default: return '#8c8c8c'; // Gray
+    }
+}
+
+// ============================================================================
 // MODULE: College Calendar (formerly college-calendar.js)
 // ============================================================================
 (function() {
@@ -80,7 +96,8 @@ function formatDateToDDMMYYYY(dateString) {
             if (eventsOnDay.length > 0) {
                 eventsForDayDiv.innerHTML = '';
                 eventsOnDay.forEach(e => {
-                    eventsForDayDiv.innerHTML += `<div style="padding: 8px; background: var(--bg-quaternary); margin-bottom: 8px; border-radius: 6px; border-left: 4px solid var(--primary-color); font-size: 0.9em;"><strong>${e.title}</strong> <span style="font-size: 0.85em; color: var(--text-muted); float: right; text-transform: capitalize;">${e.status}</span></div>`;
+                    const typeColor = getEventTypeColor(e.event_type) || 'var(--primary-color)';
+                    eventsForDayDiv.innerHTML += `<div style="padding: 8px; background: var(--bg-quaternary); margin-bottom: 8px; border-radius: 6px; border-left: 4px solid ${typeColor}; font-size: 0.9em;"><strong>${e.title}</strong> <span style="font-size: 0.85em; color: var(--text-muted); float: right; text-transform: capitalize;">${e.event_type || e.status || 'Event'}</span></div>`;
                 });
             } else {
                 eventsForDayDiv.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 15px;">No events for this day. Add one below!</p>';
@@ -155,6 +172,14 @@ function formatDateToDDMMYYYY(dateString) {
                         const eventDiv = document.createElement('div');
                         eventDiv.classList.add('calendar-task');
                         eventDiv.classList.add(eventStatus);
+                        
+                        const typeColor = getEventTypeColor(event.event_type);
+                        if (typeColor) {
+                            eventDiv.style.backgroundColor = typeColor;
+                            eventDiv.style.color = '#fff';
+                            eventDiv.style.border = 'none';
+                        }
+                        
                         eventDiv.innerText = event.title;
                         // Color is applied via CSS class
                         daySquare.appendChild(eventDiv);
@@ -396,11 +421,11 @@ function formatDateToDDMMYYYY(dateString) {
     
             const eventDate = new Date(a.date + 'T00:00:00');
     
-            if (a.completed) {
+            if (a.completed || a.status === 'completed') {
                 if (completedList) completedList.appendChild(assignmentItem);
             } else if (eventDate > today || a.status === 'upcoming') {
                 if (upcomingList) upcomingList.appendChild(assignmentItem);
-            } else if (a.status === 'pending') { // Only show 'pending' status here
+            } else { // Default to pending if not explicitly completed or upcoming
                 if (pendingList) pendingList.appendChild(assignmentItem);
             }
         });
@@ -480,14 +505,7 @@ function formatDateToDDMMYYYY(dateString) {
 (function() {
     let nav = 0; // This will be synced with upskill.js
     let clicked = null;
-   let tasks = [];
-
-fetch('/api/events/')
-    .then(res => res.json())
-    .then(data => {
-        tasks = data;
-        load();
-    });
+    let tasks = [];
     
     const calendar = document.getElementById('taskCalendar');
     const newTaskModal = document.getElementById('newTaskModal');
@@ -505,12 +523,13 @@ fetch('/api/events/')
         if (tasksOnDay.length > 0) {
             if (tasksForDayDiv) tasksForDayDiv.innerHTML = '';
             tasksOnDay.forEach(task => {
+                const typeColor = getEventTypeColor(task.event_type) || '#000';
                 const taskEl = document.createElement('div');
                 taskEl.classList.add('task-item-modal');
                 taskEl.innerHTML = `
-                    <strong>${task.text}</strong>
+                    <strong style="color: ${typeColor}">${task.title || task.text}</strong>
                     <p>${task.description || (task.date ? `Due: ${task.date}` : 'No description')}</p>
-                    <span class="status-badge ${task.status}">${task.status}</span>
+                    <span class="status-badge ${task.status || 'pending'}">${task.event_type || 'Task'}</span>
                 `;
                 if (tasksForDayDiv) tasksForDayDiv.appendChild(taskEl);
             });
@@ -595,9 +614,17 @@ fetch('/api/events/')
     
                         eventIndicator.className = 'event-indicator';
                         eventIndicator.setAttribute('data-status', taskStatus);
+                        
+                        const typeColor = getEventTypeColor(task.event_type);
+                        if (typeColor) {
+                            eventIndicator.style.backgroundColor = typeColor;
+                            eventIndicator.style.color = '#fff';
+                            eventIndicator.style.border = 'none';
+                        }
+                        
                         eventIndicator.innerHTML = `
-                            <span class="event-title">${task.text}</span><div class="event-popup">
-                                <strong>${task.text}</strong>
+                            <span class="event-title">${task.title || task.text}</span><div class="event-popup">
+                                <strong>${task.title || task.text}</strong>
                                 <p>${task.description || 'No description.'}</p>
                             </div>
                         `;
@@ -670,11 +697,18 @@ fetch('/api/events/')
         if (saveBtn) saveBtn.addEventListener('click', saveTask);
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     }
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         // Ensure calendar-specific buttons are initialized only if they exist on the page
         if (document.getElementById('taskCalendar')) {
             initButtons();
-            load();
+            
+            try {
+                const response = await fetch('/api/events/');
+                tasks = await response.json();
+                load();
+            } catch (error) {
+                console.error("Failed to load tasks for calendar:", error);
+            }
     
             window.addEventListener('nav-change', (e) => {
                 nav = e.detail.nav;

@@ -17,8 +17,10 @@ from django.contrib.auth.decorators import login_required
 @login_required
 def get_events(request):
     events = Event.objects.filter(
-        Q(is_global=True) | Q(users=request.user)
-    )
+        Q(is_global=True) | 
+        Q(users=request.user) |
+        Q(groups__in=request.user.groups.all())
+    ).distinct()
 
     data = list(events.values())
     return JsonResponse(data, safe=False)
@@ -82,8 +84,10 @@ def user_logout(request):
 @login_required
 def dashboard(request):
     events = Event.objects.filter(
-        Q(is_global=True) | Q(users=request.user)
-    ).order_by('date')
+        Q(is_global=True) | 
+        Q(users=request.user) |
+        Q(groups__in=request.user.groups.all())
+    ).distinct().order_by('date')
 
     return render(request, 'index.html', {'events': events})
 

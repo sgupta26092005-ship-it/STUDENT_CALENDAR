@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College - Bright Pitch</title>
+    <title>mgit college</title>
     <style>
         :root {
             --primary-color: #667eea;
@@ -736,16 +736,6 @@
 </head>
 <body>
     
-
-{% if user.is_authenticated %}
-    <p>Welcome, {{ user.username }}</p>
-    <a href="{% url 'logout' %}">Logout</a>
-{% else %}
-    <a href="{% url 'login' %}">Login</a>
-    <a href="{% url 'signup' %}">Signup</a>
-{% endif %}
-
-
     {% if messages %}
     {% for message in messages %}
         <script>
@@ -788,7 +778,7 @@
 
                         </select>
                         <input type="date" id="assignmentDateInput">
-                        <button id="assignmentAddButton" class="add-btn" type="button">Add Event</button>
+                        <button id="assignmentAddButton" class="add-btn" type="button">Add</button>
                     </div>
                 </div>
 

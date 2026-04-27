@@ -1,0 +1,11 @@
+/* Hide the "Welcome, vg" greeting */
+.user-greeting { /* Adjust this selector to match your HTML */
+    display: none !important;
+}
+
+/* Hide the Logout button/link */
+.logout-button { /* Adjust this selector to match your HTML */
+    display: none !important;
+}
+/* If they are in a common container, you might hide the container itself */
+/* .header-user-info { display: none !important; } */
